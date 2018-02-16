@@ -123,3 +123,54 @@ function listMajors(auth) {
     }
   });
 }
+/*
+ * Please review all source code below before merging.
+ *
+ * decodeutf16 / https://gist.github.com/also/912792
+ * encodeutf16 / https://stackoverflow.com/questions/37596748/how-do-i-encode-a-javascript-string-in-utf-16
+ */
+function encodeutf16(str) {
+  var buf = new ArrayBuffer(str.length*2);
+  var bufView = new Uint16Array(buf);
+  for (var i=0, strLen=str.length; i < strLen; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return bufView;
+}
+// http://www.ietf.org/rfc/rfc2781.txt
+function decodeUtf16(w) {
+    var i = 0;
+    var len = w.length;
+    var w1, w2;
+    var charCodes = [];
+    while (i < len) {
+        var w1 = w[i++];
+        if ((w1 & 0xF800) !== 0xD800) { // w1 < 0xD800 || w1 > 0xDFFF
+            charCodes.push(w1);
+            continue;
+        }
+        if ((w1 & 0xFC00) === 0xD800) { // w1 >= 0xD800 && w1 <= 0xDBFF
+            throw new RangeError('Invalid octet 0x' + w1.toString(16) + ' at offset ' + (i - 1));
+        }
+        if (i === len) {
+            throw new RangeError('Expected additional octet');
+        }
+        w2 = w[i++];
+        if ((w2 & 0xFC00) !== 0xDC00) { // w2 < 0xDC00 || w2 > 0xDFFF)
+            throw new RangeError('Invalid octet 0x' + w2.toString(16) + ' at offset ' + (i - 1));
+        }
+        charCodes.push(((w1 & 0x3ff) << 10) + (w2 & 0x3ff) + 0x10000);
+    }
+    return String.fromCharCode.apply(String, charCodes);
+}
+function butf16_encode(input) {
+    var a = (new Buffer(input.toString('base64'));
+    var binhexalphabet = "!\"#$%&'()*+,-012345689@ABCDEFGHIJKLMNPQRSTUVXYZ[`abcdefhijklmpqr";
+    var base64alphabat = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    return decodeUtf16(a.replace(base64alphabat, binhexalphabet));
+}
+function butf16_decode(input) {
+    var binhexalphabet = "!\"#$%&'()*+,-012345689@ABCDEFGHIJKLMNPQRSTUVXYZ[`abcdefhijklmpqr";
+    var base64alphabat = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    return (new Buffer(encodeutf16(input.replace(binhexalphabet,base64alphabat)), 'base64').toString('ascii'));
+}
